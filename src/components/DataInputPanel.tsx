@@ -1,31 +1,91 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
-import { Coffee, Smartphone, Target, Save } from "lucide-react";
+import { Coffee, Save, CalendarIcon } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { OuraSync } from "./OuraSync";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const DataInputPanel = () => {
-  const [caffeineIntake, setCaffeineIntake] = useState("");
-  const [phoneCutoffTime, setPhoneCutoffTime] = useState("");
-  const [stressLevel, setStressLevel] = useState([5]);
-  const [sleepGoal, setSleepGoal] = useState("");
+  const [caffeineServings, setCaffeineServings] = useState("");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [isSaving, setIsSaving] = useState(false);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
-  const handleSave = () => {
-    // In a real app, this would save to your backend
-    toast({
-      title: "Data Saved!",
-      description: "Your lifestyle data has been recorded successfully.",
-    });
-    
-    // Reset form
-    setCaffeineIntake("");
-    setPhoneCutoffTime("");
-    setStressLevel([5]);
-    setSleepGoal("");
+  const handleSave = async () => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to save data.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!caffeineServings || !selectedDate) {
+      toast({
+        title: "Missing Data",
+        description: "Please fill in all fields before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const { error } = await supabase
+        .from('lifestyle_data')
+        .upsert({
+          user_id: user.id,
+          date: format(selectedDate, 'yyyy-MM-dd'),
+          caffeine_servings: parseInt(caffeineServings),
+        }, {
+          onConflict: 'user_id,date'
+        });
+
+      if (error) {
+        console.error('Save error:', error);
+        toast({
+          title: "Save Failed",
+          description: "Failed to save your data. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Data Saved!",
+        description: "Your lifestyle data has been recorded successfully.",
+      });
+      
+      // Reset form
+      setCaffeineServings("");
+      setSelectedDate(new Date());
+      
+      // Refresh the data
+      queryClient.invalidateQueries({ queryKey: ['lifestyle-data'] });
+      
+    } catch (error) {
+      console.error('Save error:', error);
+      toast({
+        title: "Save Failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -37,102 +97,62 @@ export const DataInputPanel = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl font-semibold text-gray-800">
             <Coffee className="w-5 h-5 text-amber-600" />
-            Caffeine Intake
+            Lifestyle Data Entry
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="caffeine">Total caffeine consumed today (mg)</Label>
+            <Label htmlFor="date">Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !selectedDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="caffeine">Caffeine servings consumed</Label>
             <Input
               id="caffeine"
               type="number"
-              placeholder="e.g., 200"
-              value={caffeineIntake}
-              onChange={(e) => setCaffeineIntake(e.target.value)}
+              placeholder="e.g., 3"
+              value={caffeineServings}
+              onChange={(e) => setCaffeineServings(e.target.value)}
               className="text-lg"
             />
             <p className="text-sm text-gray-500">
-              For reference: Coffee (95mg), Tea (25mg), Energy drink (80mg)
+              Count cups of coffee, cans of energy drinks, etc.
             </p>
           </div>
+
+          <Button 
+            onClick={handleSave} 
+            disabled={isSaving}
+            className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white py-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all duration-300"
+          >
+            <Save className="w-5 h-5 mr-2" />
+            {isSaving ? "Saving..." : "Save Today's Data"}
+          </Button>
         </CardContent>
       </Card>
-
-      <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-xl font-semibold text-gray-800">
-            <Smartphone className="w-5 h-5 text-blue-600" />
-            Phone Usage
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <Label htmlFor="phone-cutoff">Time you stopped using your phone</Label>
-            <Input
-              id="phone-cutoff"
-              type="time"
-              value={phoneCutoffTime}
-              onChange={(e) => setPhoneCutoffTime(e.target.value)}
-              className="text-lg"
-            />
-            <p className="text-sm text-gray-500">
-              This helps analyze how screen time affects your sleep quality
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-xl font-semibold text-gray-800">
-            <Target className="w-5 h-5 text-purple-600" />
-            Wellness Tracking
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <div>
-              <Label className="text-base font-medium">Stress Level (1-10)</Label>
-              <div className="mt-2 mb-4">
-                <Slider
-                  value={stressLevel}
-                  onValueChange={setStressLevel}
-                  max={10}
-                  min={1}
-                  step={1}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-sm text-gray-500 mt-1">
-                  <span>Very Low</span>
-                  <span className="font-medium text-purple-600">{stressLevel[0]}</span>
-                  <span>Very High</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="sleep-goal">Sleep Goal (hours)</Label>
-              <Input
-                id="sleep-goal"
-                type="number"
-                step="0.5"
-                placeholder="e.g., 8"
-                value={sleepGoal}
-                onChange={(e) => setSleepGoal(e.target.value)}
-                className="text-lg"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Button 
-        onClick={handleSave} 
-        className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white py-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all duration-300"
-      >
-        <Save className="w-5 h-5 mr-2" />
-        Save Today's Data
-      </Button>
     </div>
   );
 };

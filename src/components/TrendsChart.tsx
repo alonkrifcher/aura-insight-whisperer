@@ -1,11 +1,55 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
-import { mockOuraData } from "@/lib/mockData";
-import { TrendingUp, Moon, Activity, Battery, Coffee } from "lucide-react";
+import { TrendingUp, Coffee } from "lucide-react";
+import { useOuraData } from "@/hooks/useOuraData";
+import { useLifestyleData } from "@/hooks/useLifestyleData";
 
 export const TrendsChart = () => {
-  const last7Days = mockOuraData.slice(0, 7).reverse();
+  const { data: ouraData, isLoading: ouraLoading } = useOuraData();
+  const { data: lifestyleData, isLoading: lifestyleLoading } = useLifestyleData();
+
+  if (ouraLoading || lifestyleLoading) {
+    return (
+      <div className="space-y-6">
+        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+          <CardContent className="p-6">
+            <div className="animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
+              <div className="h-64 bg-gray-200 rounded"></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!ouraData || ouraData.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+          <CardContent className="p-6">
+            <h3 className="text-lg font-medium text-gray-600 mb-2">No data available for trends</h3>
+            <p className="text-gray-500">Sync your Oura data to see trends and charts here.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Prepare data for charts - reverse to show chronological order
+  const chartData = ouraData.slice().reverse().map(item => ({
+    date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    sleepScore: item.sleep_score || 0,
+    activityScore: item.activity_score || 0,
+    readinessScore: item.readiness_score || 0,
+  }));
+
+  // Prepare lifestyle data for charts
+  const lifestyleChartData = lifestyleData?.slice().reverse().map(item => ({
+    date: item.date ? new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Unknown',
+    caffeineServings: item.caffeine_servings || 0,
+  })) || [];
 
   return (
     <div className="space-y-6">
@@ -13,12 +57,12 @@ export const TrendsChart = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl font-semibold text-gray-800">
             <TrendingUp className="w-5 h-5 text-blue-600" />
-            Health Scores Trend (7 Days)
+            Health Scores Trend ({chartData.length} Days)
           </CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={last7Days}>
+            <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
               <XAxis 
                 dataKey="date" 
@@ -66,17 +110,17 @@ export const TrendsChart = () => {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {lifestyleChartData.length > 0 && (
         <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg font-semibold text-gray-800">
               <Coffee className="w-5 h-5 text-amber-600" />
-              Caffeine vs Sleep Quality
+              Caffeine Servings Trend
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={last7Days}>
+              <BarChart data={lifestyleChartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
                 <XAxis dataKey="date" stroke="#666" fontSize={12} />
                 <YAxis stroke="#666" fontSize={12} />
@@ -88,39 +132,12 @@ export const TrendsChart = () => {
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' 
                   }}
                 />
-                <Bar dataKey="caffeineIntake" fill="#f59e0b" name="Caffeine (mg)" />
+                <Bar dataKey="caffeineServings" fill="#f59e0b" name="Caffeine Servings" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
-
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-gray-800">
-              <Moon className="w-5 h-5 text-indigo-600" />
-              Sleep Duration Trend
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={last7Days}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                <XAxis dataKey="date" stroke="#666" fontSize={12} />
-                <YAxis stroke="#666" fontSize={12} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
-                    border: 'none', 
-                    borderRadius: '8px', 
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' 
-                  }}
-                />
-                <Bar dataKey="sleepDuration" fill="#6366f1" name="Sleep Hours" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+      )}
     </div>
   );
 };

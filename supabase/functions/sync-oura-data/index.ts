@@ -42,7 +42,7 @@ serve(async (req) => {
       });
     }
 
-    // Fetch sleep data from Oura API
+    // Fetch data from Oura API for the last 7 days
     const today = new Date().toISOString().split('T')[0];
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
@@ -112,13 +112,12 @@ serve(async (req) => {
       const { error: upsertError } = await supabaseClient
         .from('oura_data')
         .upsert(dataToUpsert, { 
-          onConflict: 'user_id,date',
-          ignoreDuplicates: false 
+          onConflict: 'user_id,date'
         });
 
       if (upsertError) {
         console.error('Database error:', upsertError);
-        return new Response(JSON.stringify({ error: 'Failed to save data' }), {
+        return new Response(JSON.stringify({ error: 'Failed to save data', details: upsertError.message }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
