@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { mockOuraData } from "@/lib/mockData";
-import { TrendingUp, Moon, Activity, Battery } from "lucide-react";
+import { TrendingUp, Moon, Activity, Battery, Coffee } from "lucide-react";
 
 export const TrendsChart = () => {
   const last7Days = mockOuraData.slice(0, 7).reverse();

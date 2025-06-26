@@ -4,7 +4,7 @@ import { HealthDashboard } from "@/components/HealthDashboard";
 import { DataInputPanel } from "@/components/DataInputPanel";
 import { TrendsChart } from "@/components/TrendsChart";
 import { AIInsights } from "@/components/AIInsights";
-import { Tabs, TabsContent, TabsList, TabsTracker } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Activity, BarChart3, Brain, Plus } from "lucide-react";
 
 const Index = () => {
@@ -24,22 +24,22 @@ const Index = () => {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-6 bg-white/80 backdrop-blur-sm">
-            <TabsTracker className="flex items-center gap-2 text-sm">
+            <TabsTrigger value="dashboard" className="flex items-center gap-2 text-sm">
               <Activity className="w-4 h-4" />
               Dashboard
-            </TabsTracker>
-            <TabsTracker className="flex items-center gap-2 text-sm">
+            </TabsTrigger>
+            <TabsTrigger value="input" className="flex items-center gap-2 text-sm">
               <Plus className="w-4 h-4" />
               Add Data
-            </TabsTracker>
-            <TabsTracker className="flex items-center gap-2 text-sm">
+            </TabsTrigger>
+            <TabsTrigger value="trends" className="flex items-center gap-2 text-sm">
               <BarChart3 className="w-4 h-4" />
               Trends
-            </TabsTracker>
-            <TabsTracker className="flex items-center gap-2 text-sm">
+            </TabsTrigger>
+            <TabsTrigger value="insights" className="flex items-center gap-2 text-sm">
               <Brain className="w-4 h-4" />
               AI Insights
-            </TabsTracker>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-6">
