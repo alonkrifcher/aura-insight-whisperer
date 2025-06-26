@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Coffee, Smartphone, Target, Save } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { OuraSync } from "./OuraSync";
 
 export const DataInputPanel = () => {
   const [caffeineIntake, setCaffeineIntake] = useState("");
@@ -30,6 +30,9 @@ export const DataInputPanel = () => {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
+      {/* Oura Sync Component */}
+      <OuraSync />
+
       <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl font-semibold text-gray-800">
