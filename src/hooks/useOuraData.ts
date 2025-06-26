@@ -1,4 +1,3 @@
-
 // Enhanced useOuraData.ts
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -119,4 +118,62 @@ export const useAddLifestyleData = () => {
 
     return result;
   };
+};
+
+// Keep the original interfaces for backward compatibility
+export interface OuraDataPoint {
+  id: string;
+  date: string | null;
+  sleep_score: number | null;
+  activity_score: number | null;
+  readiness_score: number | null;
+  user_id: string;
+  created_at: string | null;
+}
+
+export interface LifestyleDataPoint {
+  id: string;
+  date: string | null;
+  caffeine_servings: number | null;
+  user_id: string;
+}
+
+export const useOuraData = () => {
+  return useQuery({
+    queryKey: ['oura-data'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('oura_data')
+        .select('id, date, sleep_score, activity_score, readiness_score, user_id, created_at')
+        .order('date', { ascending: false })
+        .limit(7);
+
+      if (error) {
+        console.error('Error fetching Oura data:', error);
+        throw error;
+      }
+
+      return data as OuraDataPoint[];
+    },
+  });
+};
+
+export const useLifestyleData = () => {
+  return useQuery({
+    queryKey: ['lifestyle-data'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('lifestyle_data')
+        .select('id, date, caffeine_servings, user_id')
+        .order('date', { ascending: false })
+        .limit(7);
+
+      if (error) {
+        console.error('Error fetching lifestyle data:', error);
+        throw error;
+      }
+
+      return data as LifestyleDataPoint[];
+    },
+  });
 };

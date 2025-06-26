@@ -3,7 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Coffee, Save, CalendarIcon } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Slider } from "@/components/ui/slider";
+import { Coffee, Save, CalendarIcon, Wine, Smartphone, Utensils, Pill, Brain } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { OuraSync } from "./OuraSync";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,7 +17,15 @@ import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 
 export const DataInputPanel = () => {
+  // Form state
   const [caffeineServings, setCaffeineServings] = useState("");
+  const [alcoholServings, setAlcoholServings] = useState("");
+  const [lastAlcoholicDrink, setLastAlcoholicDrink] = useState("");
+  const [screentimeEnd, setScreentimeEnd] = useState("");
+  const [lastFood, setLastFood] = useState("");
+  const [sleepAids, setSleepAids] = useState<string[]>([]);
+  const [stressLevel, setStressLevel] = useState([5]);
+  
   // Default to yesterday's date
   const getYesterday = () => {
     const yesterday = new Date();
@@ -27,6 +37,26 @@ export const DataInputPanel = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
+  const sleepAidOptions = [
+    { id: "xanax", label: "Xanax" },
+    { id: "melatonin", label: "Melatonin" },
+    { id: "unisom", label: "Unisom" }
+  ];
+
+  const handleSleepAidChange = (aidId: string, checked: boolean) => {
+    if (checked) {
+      setSleepAids(prev => [...prev, aidId]);
+    } else {
+      setSleepAids(prev => prev.filter(aid => aid !== aidId));
+    }
+  };
+
+  const validateTimeFormat = (time: string) => {
+    if (!time) return true; // Empty is valid
+    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    return timeRegex.test(time);
+  };
+
   const handleSave = async () => {
     if (!user) {
       toast({
@@ -37,10 +67,38 @@ export const DataInputPanel = () => {
       return;
     }
 
-    if (!caffeineServings || !selectedDate) {
+    if (!selectedDate) {
       toast({
         title: "Missing Data",
-        description: "Please fill in all fields before saving.",
+        description: "Please select a date.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate time inputs
+    if (!validateTimeFormat(lastAlcoholicDrink)) {
+      toast({
+        title: "Invalid Time",
+        description: "Please enter last alcoholic drink time in HH:MM format (e.g., 20:30).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!validateTimeFormat(screentimeEnd)) {
+      toast({
+        title: "Invalid Time",
+        description: "Please enter screentime end in HH:MM format (e.g., 22:30).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!validateTimeFormat(lastFood)) {
+      toast({
+        title: "Invalid Time",
+        description: "Please enter last food time in HH:MM format (e.g., 19:45).",
         variant: "destructive",
       });
       return;
@@ -49,13 +107,21 @@ export const DataInputPanel = () => {
     setIsSaving(true);
 
     try {
+      const lifestyleData = {
+        user_id: user.id,
+        date: format(selectedDate, 'yyyy-MM-dd'),
+        caffeine_servings: caffeineServings ? parseInt(caffeineServings) : null,
+        alcohol_servings: alcoholServings ? parseInt(alcoholServings) : null,
+        last_alcoholic_drink: lastAlcoholicDrink || null,
+        screentime_end: screentimeEnd || null,
+        last_food: lastFood || null,
+        sleep_aids: sleepAids.length > 0 ? sleepAids : null,
+        stress_level: stressLevel[0],
+      };
+
       const { error } = await supabase
         .from('lifestyle_data')
-        .upsert({
-          user_id: user.id,
-          date: format(selectedDate, 'yyyy-MM-dd'),
-          caffeine_servings: parseInt(caffeineServings),
-        }, {
+        .upsert(lifestyleData, {
           onConflict: 'user_id,date'
         });
 
@@ -76,10 +142,17 @@ export const DataInputPanel = () => {
       
       // Reset form - keep yesterday as default
       setCaffeineServings("");
+      setAlcoholServings("");
+      setLastAlcoholicDrink("");
+      setScreentimeEnd("");
+      setLastFood("");
+      setSleepAids([]);
+      setStressLevel([5]);
       setSelectedDate(getYesterday());
       
       // Refresh the data
       queryClient.invalidateQueries({ queryKey: ['lifestyle-data'] });
+      queryClient.invalidateQueries({ queryKey: ['enhanced-lifestyle-data'] });
       
     } catch (error) {
       console.error('Save error:', error);
@@ -94,7 +167,7 @@ export const DataInputPanel = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Oura Sync Component */}
       <OuraSync />
 
@@ -102,10 +175,14 @@ export const DataInputPanel = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl font-semibold text-gray-800">
             <Coffee className="w-5 h-5 text-amber-600" />
-            Lifestyle Data Entry
+            Enhanced Lifestyle Data Entry
           </CardTitle>
+          <p className="text-gray-600">
+            Track the lifestyle factors that impact your sleep and recovery
+          </p>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
+          {/* Date Selection */}
           <div className="space-y-2">
             <Label htmlFor="date">Date</Label>
             <Popover>
@@ -136,21 +213,153 @@ export const DataInputPanel = () => {
             </p>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="caffeine">Caffeine servings consumed</Label>
-            <Input
-              id="caffeine"
-              type="number"
-              placeholder="e.g., 3"
-              value={caffeineServings}
-              onChange={(e) => setCaffeineServings(e.target.value)}
-              className="text-lg"
-            />
-            <p className="text-sm text-gray-500">
-              Count cups of coffee, cans of energy drinks, etc.
+          {/* Form Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Caffeine */}
+            <div className="space-y-2">
+              <Label htmlFor="caffeine" className="flex items-center gap-2">
+                <Coffee className="w-4 h-4 text-amber-600" />
+                Caffeine servings
+              </Label>
+              <Input
+                id="caffeine"
+                type="number"
+                placeholder="e.g., 3"
+                value={caffeineServings}
+                onChange={(e) => setCaffeineServings(e.target.value)}
+                min="0"
+                max="20"
+              />
+              <p className="text-xs text-gray-500">
+                Count cups of coffee, cans of energy drinks, etc.
+              </p>
+            </div>
+
+            {/* Alcohol */}
+            <div className="space-y-2">
+              <Label htmlFor="alcohol" className="flex items-center gap-2">
+                <Wine className="w-4 h-4 text-red-600" />
+                Alcohol servings
+              </Label>
+              <Input
+                id="alcohol"
+                type="number"
+                placeholder="e.g., 2"
+                value={alcoholServings}
+                onChange={(e) => setAlcoholServings(e.target.value)}
+                min="0"
+                max="20"
+              />
+              <p className="text-xs text-gray-500">
+                Standard drinks (12oz beer, 5oz wine, 1.5oz spirits)
+              </p>
+            </div>
+
+            {/* Last Alcoholic Drink */}
+            <div className="space-y-2">
+              <Label htmlFor="lastDrink" className="flex items-center gap-2">
+                <Wine className="w-4 h-4 text-red-600" />
+                Last alcoholic drink
+              </Label>
+              <Input
+                id="lastDrink"
+                type="time"
+                value={lastAlcoholicDrink}
+                onChange={(e) => setLastAlcoholicDrink(e.target.value)}
+              />
+              <p className="text-xs text-gray-500">
+                Time of your last alcoholic drink
+              </p>
+            </div>
+
+            {/* Screentime End */}
+            <div className="space-y-2">
+              <Label htmlFor="screentime" className="flex items-center gap-2">
+                <Smartphone className="w-4 h-4 text-blue-600" />
+                Screentime end
+              </Label>
+              <Input
+                id="screentime"
+                type="time"
+                value={screentimeEnd}
+                onChange={(e) => setScreentimeEnd(e.target.value)}
+              />
+              <p className="text-xs text-gray-500">
+                When did you stop using screens/devices?
+              </p>
+            </div>
+
+            {/* Last Food */}
+            <div className="space-y-2">
+              <Label htmlFor="lastFood" className="flex items-center gap-2">
+                <Utensils className="w-4 h-4 text-green-600" />
+                Last food
+              </Label>
+              <Input
+                id="lastFood"
+                type="time"
+                value={lastFood}
+                onChange={(e) => setLastFood(e.target.value)}
+              />
+              <p className="text-xs text-gray-500">
+                Time of your last meal/snack
+              </p>
+            </div>
+
+            {/* Stress Level */}
+            <div className="space-y-3">
+              <Label className="flex items-center gap-2">
+                <Brain className="w-4 h-4 text-purple-600" />
+                Stress level: {stressLevel[0]}
+              </Label>
+              <div className="px-2">
+                <Slider
+                  value={stressLevel}
+                  onValueChange={setStressLevel}
+                  max={10}
+                  min={1}
+                  step={1}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>1 (Very low)</span>
+                  <span>10 (Very high)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Sleep Aids */}
+          <div className="space-y-3">
+            <Label className="flex items-center gap-2">
+              <Pill className="w-4 h-4 text-indigo-600" />
+              Sleep aids taken
+            </Label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {sleepAidOptions.map((aid) => (
+                <div key={aid.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={aid.id}
+                    checked={sleepAids.includes(aid.id)}
+                    onCheckedChange={(checked) => 
+                      handleSleepAidChange(aid.id, checked as boolean)
+                    }
+                  />
+                  <Label
+                    htmlFor={aid.id}
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    {aid.label}
+                  </Label>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500">
+              Select all sleep aids you took yesterday
             </p>
           </div>
 
+          {/* Save Button */}
           <Button 
             onClick={handleSave} 
             disabled={isSaving}
