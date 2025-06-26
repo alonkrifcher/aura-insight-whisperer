@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -64,7 +65,52 @@ export const AIInsights = () => {
             icon: AlertCircle,
             title: "Caffeine May Be Affecting Sleep",
             description: `Your sleep scores are ${Math.round(lowCaffeineAvgSleep - highCaffeineAvgSleep)} points higher on low-caffeine days. Consider reducing afternoon caffeine intake.`,
-            });
+            priority: "medium"
+          });
+        }
+      }
+    }
+
+    // Alcohol impact analysis
+    const alcoholData = recentLifestyle.map(d => ({
+      alcohol: d.alcohol_servings || 0,
+      sleepScore: recentOura.find(o => o.date === d.date)?.sleep_score || 0,
+      sleepEfficiency: recentOura.find(o => o.date === d.date)?.sleep_efficiency || 0
+    })).filter(d => d.sleepScore > 0);
+
+    if (alcoholData.some(d => d.alcohol > 0)) {
+      const alcoholDays = alcoholData.filter(d => d.alcohol > 0);
+      const noAlcoholDays = alcoholData.filter(d => d.alcohol === 0);
+      
+      if (alcoholDays.length > 0 && noAlcoholDays.length > 0) {
+        const alcoholAvgEfficiency = alcoholDays.reduce((a, b) => a + b.sleepEfficiency, 0) / alcoholDays.length;
+        const noAlcoholAvgEfficiency = noAlcoholDays.reduce((a, b) => a + b.sleepEfficiency, 0) / noAlcoholDays.length;
+        
+        if (noAlcoholAvgEfficiency - alcoholAvgEfficiency > 5) {
+          insights.push({
+            type: "warning",
+            icon: AlertCircle,
+            title: "Alcohol Impacting Sleep Quality",
+            description: `Your sleep efficiency is ${Math.round(noAlcoholAvgEfficiency - alcoholAvgEfficiency)}% better on alcohol-free nights. Consider limiting evening alcohol consumption.`,
+            priority: "medium"
+          });
+        }
+      }
+    }
+
+    // Stress level analysis
+    const stressLevels = recentLifestyle.map(d => d.stress_level).filter(s => s !== null);
+    if (stressLevels.length > 0) {
+      const avgStress = stressLevels.reduce((a, b) => a + b, 0) / stressLevels.length;
+      
+      if (avgStress >= 7) {
+        insights.push({
+          type: "warning",
+          icon: AlertCircle,
+          title: "Elevated Stress Levels",
+          description: `Your average stress level of ${avgStress.toFixed(1)}/10 is high. Consider stress management techniques like meditation or exercise.`,
+          priority: "high"
+        });
       } else if (avgStress <= 3) {
         insights.push({
           type: "positive",
@@ -332,48 +378,4 @@ export const AIInsights = () => {
       )}
     </div>
   );
-};"
-          });
-        }
-      }
-    }
-
-    // Alcohol impact analysis
-    const alcoholData = recentLifestyle.map(d => ({
-      alcohol: d.alcohol_servings || 0,
-      sleepScore: recentOura.find(o => o.date === d.date)?.sleep_score || 0,
-      sleepEfficiency: recentOura.find(o => o.date === d.date)?.sleep_efficiency || 0
-    })).filter(d => d.sleepScore > 0);
-
-    if (alcoholData.some(d => d.alcohol > 0)) {
-      const alcoholDays = alcoholData.filter(d => d.alcohol > 0);
-      const noAlcoholDays = alcoholData.filter(d => d.alcohol === 0);
-      
-      if (alcoholDays.length > 0 && noAlcoholDays.length > 0) {
-        const alcoholAvgEfficiency = alcoholDays.reduce((a, b) => a + b.sleepEfficiency, 0) / alcoholDays.length;
-        const noAlcoholAvgEfficiency = noAlcoholDays.reduce((a, b) => a + b.sleepEfficiency, 0) / noAlcoholDays.length;
-        
-        if (noAlcoholAvgEfficiency - alcoholAvgEfficiency > 5) {
-          insights.push({
-            type: "warning",
-            icon: AlertCircle,
-            title: "Alcohol Impacting Sleep Quality",
-            description: `Your sleep efficiency is ${Math.round(noAlcoholAvgEfficiency - alcoholAvgEfficiency)}% better on alcohol-free nights. Consider limiting evening alcohol consumption.`,
-            priority: "medium"
-          });
-        }
-      }
-    }
-
-    // Stress level analysis
-    const stressLevels = recentLifestyle.map(d => d.stress_level).filter(s => s !== null);
-    if (stressLevels.length > 0) {
-      const avgStress = stressLevels.reduce((a, b) => a + b, 0) / stressLevels.length;
-      
-      if (avgStress >= 7) {
-        insights.push({
-          type: "warning",
-          icon: AlertCircle,
-          title: "Elevated Stress Levels",
-          description: `Your average stress level of ${avgStress.toFixed(1)}/10 is high. Consider stress management techniques like meditation or exercise.`,
-          priority: "high
+};
