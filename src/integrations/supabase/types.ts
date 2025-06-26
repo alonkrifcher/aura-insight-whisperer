@@ -20,7 +20,7 @@ export type Database = {
           caffeine_servings?: number | null
           date?: string | null
           id?: string
-          user_id?: string
+          user_id: string
         }
         Update: {
           caffeine_servings?: number | null
