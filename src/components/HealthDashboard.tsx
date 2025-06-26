@@ -3,11 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Moon, Activity, Battery, Coffee } from "lucide-react";
-import { useOuraData } from "@/hooks/useOuraData";
+import { useEnhancedOuraData } from "@/hooks/useOuraData";
 import { useLifestyleData } from "@/hooks/useLifestyleData";
 
 export const HealthDashboard = () => {
-  const { data: ouraData, isLoading: ouraLoading } = useOuraData();
+  const { data: ouraData, isLoading: ouraLoading } = useEnhancedOuraData();
   const { data: lifestyleData, isLoading: lifestyleLoading } = useLifestyleData();
 
   const todayData = ouraData?.[0];

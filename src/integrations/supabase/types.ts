@@ -11,51 +11,171 @@ export type Database = {
     Tables: {
       lifestyle_data: {
         Row: {
+          alcohol_servings: number | null
           caffeine_servings: number | null
           date: string | null
           id: string
+          last_alcoholic_drink: string | null
+          last_food: string | null
+          screentime_end: string | null
+          sleep_aids: string[] | null
+          stress_level: number | null
           user_id: string
         }
         Insert: {
+          alcohol_servings?: number | null
           caffeine_servings?: number | null
           date?: string | null
           id?: string
+          last_alcoholic_drink?: string | null
+          last_food?: string | null
+          screentime_end?: string | null
+          sleep_aids?: string[] | null
+          stress_level?: number | null
           user_id: string
         }
         Update: {
+          alcohol_servings?: number | null
           caffeine_servings?: number | null
           date?: string | null
           id?: string
+          last_alcoholic_drink?: string | null
+          last_food?: string | null
+          screentime_end?: string | null
+          sleep_aids?: string[] | null
+          stress_level?: number | null
           user_id?: string
         }
         Relationships: []
       }
       oura_data: {
         Row: {
+          active_calories: number | null
+          activity_balance: number | null
           activity_score: number | null
+          average_breath: number | null
+          average_heart_rate: number | null
+          average_hrv: number | null
+          awake_time: number | null
+          bedtime_end: string | null
+          bedtime_start: string | null
+          body_temperature_contrib: number | null
           created_at: string | null
           date: string | null
+          deep_sleep_duration: number | null
+          equivalent_walking_distance: number | null
+          high_activity_time: number | null
+          hrv_balance: number | null
           id: string
+          light_sleep_duration: number | null
+          low_activity_time: number | null
+          lowest_heart_rate: number | null
+          medium_activity_time: number | null
+          non_wear_time: number | null
+          previous_day_activity: number | null
+          previous_night: number | null
           readiness_score: number | null
+          recovery_index: number | null
+          rem_sleep_duration: number | null
+          resting_heart_rate: number | null
+          resting_heart_rate_contrib: number | null
+          restless_periods: number | null
+          sleep_balance: number | null
+          sleep_efficiency: number | null
+          sleep_latency: number | null
           sleep_score: number | null
+          steps: number | null
+          temperature_deviation: number | null
+          temperature_trend_deviation: number | null
+          time_in_bed: number | null
+          total_calories: number | null
+          total_sleep_duration: number | null
           user_id: string
         }
         Insert: {
+          active_calories?: number | null
+          activity_balance?: number | null
           activity_score?: number | null
+          average_breath?: number | null
+          average_heart_rate?: number | null
+          average_hrv?: number | null
+          awake_time?: number | null
+          bedtime_end?: string | null
+          bedtime_start?: string | null
+          body_temperature_contrib?: number | null
           created_at?: string | null
           date?: string | null
+          deep_sleep_duration?: number | null
+          equivalent_walking_distance?: number | null
+          high_activity_time?: number | null
+          hrv_balance?: number | null
           id?: string
+          light_sleep_duration?: number | null
+          low_activity_time?: number | null
+          lowest_heart_rate?: number | null
+          medium_activity_time?: number | null
+          non_wear_time?: number | null
+          previous_day_activity?: number | null
+          previous_night?: number | null
           readiness_score?: number | null
+          recovery_index?: number | null
+          rem_sleep_duration?: number | null
+          resting_heart_rate?: number | null
+          resting_heart_rate_contrib?: number | null
+          restless_periods?: number | null
+          sleep_balance?: number | null
+          sleep_efficiency?: number | null
+          sleep_latency?: number | null
           sleep_score?: number | null
+          steps?: number | null
+          temperature_deviation?: number | null
+          temperature_trend_deviation?: number | null
+          time_in_bed?: number | null
+          total_calories?: number | null
+          total_sleep_duration?: number | null
           user_id: string
         }
         Update: {
+          active_calories?: number | null
+          activity_balance?: number | null
           activity_score?: number | null
+          average_breath?: number | null
+          average_heart_rate?: number | null
+          average_hrv?: number | null
+          awake_time?: number | null
+          bedtime_end?: string | null
+          bedtime_start?: string | null
+          body_temperature_contrib?: number | null
           created_at?: string | null
           date?: string | null
+          deep_sleep_duration?: number | null
+          equivalent_walking_distance?: number | null
+          high_activity_time?: number | null
+          hrv_balance?: number | null
           id?: string
+          light_sleep_duration?: number | null
+          low_activity_time?: number | null
+          lowest_heart_rate?: number | null
+          medium_activity_time?: number | null
+          non_wear_time?: number | null
+          previous_day_activity?: number | null
+          previous_night?: number | null
           readiness_score?: number | null
+          recovery_index?: number | null
+          rem_sleep_duration?: number | null
+          resting_heart_rate?: number | null
+          resting_heart_rate_contrib?: number | null
+          restless_periods?: number | null
+          sleep_balance?: number | null
+          sleep_efficiency?: number | null
+          sleep_latency?: number | null
           sleep_score?: number | null
+          steps?: number | null
+          temperature_deviation?: number | null
+          temperature_trend_deviation?: number | null
+          time_in_bed?: number | null
+          total_calories?: number | null
+          total_sleep_duration?: number | null
           user_id?: string
         }
         Relationships: []

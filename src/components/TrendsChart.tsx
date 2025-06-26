@@ -2,11 +2,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { TrendingUp, Coffee } from "lucide-react";
-import { useOuraData } from "@/hooks/useOuraData";
+import { useEnhancedOuraData } from "@/hooks/useOuraData";
 import { useLifestyleData } from "@/hooks/useLifestyleData";
 
 export const TrendsChart = () => {
-  const { data: ouraData, isLoading: ouraLoading } = useOuraData();
+  const { data: ouraData, isLoading: ouraLoading } = useEnhancedOuraData();
   const { data: lifestyleData, isLoading: lifestyleLoading } = useLifestyleData();
 
   if (ouraLoading || lifestyleLoading) {

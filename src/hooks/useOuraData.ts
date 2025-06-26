@@ -1,3 +1,4 @@
+
 // Enhanced useOuraData.ts
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -106,7 +107,7 @@ export const useEnhancedLifestyleData = () => {
 
 // Helper hook for adding lifestyle data
 export const useAddLifestyleData = () => {
-  return async (data: Partial<EnhancedLifestyleDataPoint>) => {
+  return async (data: Omit<EnhancedLifestyleDataPoint, 'id'>) => {
     const { data: result, error } = await supabase
       .from('lifestyle_data')
       .upsert([data], { onConflict: 'user_id,date' })
