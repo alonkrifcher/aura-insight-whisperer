@@ -41,11 +41,22 @@ serve(async (req) => {
       });
     }
 
-    // Fetch data from Oura API for the last 7 days
-    const today = new Date().toISOString().split('T')[0];
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    // Parse request body to get days parameter (default to 7 for backward compatibility)
+    let daysToSync = 7;
+    try {
+      const body = await req.json();
+      if (body.days && typeof body.days === 'number' && body.days > 0 && body.days <= 30) {
+        daysToSync = body.days;
+      }
+    } catch {
+      // Use default if no body or parsing fails
+    }
 
-    console.log('Fetching enhanced Oura data from', sevenDaysAgo, 'to', today);
+    // Calculate date range based on daysToSync parameter
+    const today = new Date().toISOString().split('T')[0];
+    const startDate = new Date(Date.now() - (daysToSync - 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    console.log(`Fetching enhanced Oura data from ${startDate} to ${today} (${daysToSync} days)`);
 
     // Fetch all available endpoints in parallel
     const [
@@ -55,19 +66,19 @@ serve(async (req) => {
       heartRateResponse,
       detailedSleepResponse
     ] = await Promise.all([
-      fetch(`https://api.ouraring.com/v2/usercollection/daily_sleep?start_date=${sevenDaysAgo}&end_date=${today}`, {
+      fetch(`https://api.ouraring.com/v2/usercollection/daily_sleep?start_date=${startDate}&end_date=${today}`, {
         headers: { 'Authorization': `Bearer ${ouraToken}` }
       }),
-      fetch(`https://api.ouraring.com/v2/usercollection/daily_activity?start_date=${sevenDaysAgo}&end_date=${today}`, {
+      fetch(`https://api.ouraring.com/v2/usercollection/daily_activity?start_date=${startDate}&end_date=${today}`, {
         headers: { 'Authorization': `Bearer ${ouraToken}` }
       }),
-      fetch(`https://api.ouraring.com/v2/usercollection/daily_readiness?start_date=${sevenDaysAgo}&end_date=${today}`, {
+      fetch(`https://api.ouraring.com/v2/usercollection/daily_readiness?start_date=${startDate}&end_date=${today}`, {
         headers: { 'Authorization': `Bearer ${ouraToken}` }
       }),
-      fetch(`https://api.ouraring.com/v2/usercollection/heartrate?start_datetime=${sevenDaysAgo}T00:00:00&end_datetime=${today}T23:59:59`, {
+      fetch(`https://api.ouraring.com/v2/usercollection/heartrate?start_datetime=${startDate}T00:00:00&end_datetime=${today}T23:59:59`, {
         headers: { 'Authorization': `Bearer ${ouraToken}` }
       }),
-      fetch(`https://api.ouraring.com/v2/usercollection/sleep?start_date=${sevenDaysAgo}&end_date=${today}`, {
+      fetch(`https://api.ouraring.com/v2/usercollection/sleep?start_date=${startDate}&end_date=${today}`, {
         headers: { 'Authorization': `Bearer ${ouraToken}` }
       })
     ]);
@@ -75,8 +86,12 @@ serve(async (req) => {
     // Check for API errors
     const responses = [sleepResponse, activityResponse, readinessResponse, heartRateResponse, detailedSleepResponse];
     if (responses.some(r => !r.ok)) {
-      console.error('Oura API error:', responses.map(r => r.status));
-      return new Response(JSON.stringify({ error: 'Failed to fetch from Oura API' }), {
+      const errorStatuses = responses.map(r => r.status);
+      console.error('Oura API error:', errorStatuses);
+      return new Response(JSON.stringify({ 
+        error: 'Failed to fetch from Oura API', 
+        details: `HTTP status codes: ${errorStatuses.join(', ')}` 
+      }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -215,10 +230,16 @@ serve(async (req) => {
       }
     }
 
+    const syncType = daysToSync <= 2 ? 'Quick' : 'Full';
+    const message = `${syncType} sync complete! Updated ${dataToUpsert.length} days of Oura data (${startDate} to ${today})`;
+
     return new Response(JSON.stringify({ 
       success: true, 
       recordsProcessed: dataToUpsert.length,
-      message: `Synced ${dataToUpsert.length} days of enhanced Oura data`
+      daysRequested: daysToSync,
+      dateRange: { start: startDate, end: today },
+      syncType: syncType,
+      message: message
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
