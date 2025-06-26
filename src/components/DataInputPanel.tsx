@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,7 +16,13 @@ import { useQueryClient } from "@tanstack/react-query";
 
 export const DataInputPanel = () => {
   const [caffeineServings, setCaffeineServings] = useState("");
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  // Default to yesterday's date
+  const getYesterday = () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    return yesterday;
+  };
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(getYesterday());
   const [isSaving, setIsSaving] = useState(false);
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -69,9 +74,9 @@ export const DataInputPanel = () => {
         description: "Your lifestyle data has been recorded successfully.",
       });
       
-      // Reset form
+      // Reset form - keep yesterday as default
       setCaffeineServings("");
-      setSelectedDate(new Date());
+      setSelectedDate(getYesterday());
       
       // Refresh the data
       queryClient.invalidateQueries({ queryKey: ['lifestyle-data'] });
@@ -126,6 +131,9 @@ export const DataInputPanel = () => {
                 />
               </PopoverContent>
             </Popover>
+            <p className="text-sm text-gray-500">
+              Defaults to yesterday - track the lifestyle factors from the previous day.
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -149,7 +157,7 @@ export const DataInputPanel = () => {
             className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white py-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all duration-300"
           >
             <Save className="w-5 h-5 mr-2" />
-            {isSaving ? "Saving..." : "Save Today's Data"}
+            {isSaving ? "Saving..." : "Save Yesterday's Data"}
           </Button>
         </CardContent>
       </Card>

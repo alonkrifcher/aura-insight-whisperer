@@ -38,16 +38,29 @@ export const TrendsChart = () => {
   }
 
   // Prepare data for charts - reverse to show chronological order
+  // Fix date formatting to avoid timezone offset issues
   const chartData = ouraData.slice().reverse().map(item => ({
-    date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    date: item.date ? (() => {
+      const dateParts = item.date.split('-');
+      const year = parseInt(dateParts[0]);
+      const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed
+      const day = parseInt(dateParts[2]);
+      return new Date(year, month, day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    })() : 'Unknown',
     sleepScore: item.sleep_score || 0,
     activityScore: item.activity_score || 0,
     readinessScore: item.readiness_score || 0,
   }));
 
-  // Prepare lifestyle data for charts
+  // Prepare lifestyle data for charts - fix date formatting
   const lifestyleChartData = lifestyleData?.slice().reverse().map(item => ({
-    date: item.date ? new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Unknown',
+    date: item.date ? (() => {
+      const dateParts = item.date.split('-');
+      const year = parseInt(dateParts[0]);
+      const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed
+      const day = parseInt(dateParts[2]);
+      return new Date(year, month, day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    })() : 'Unknown',
     caffeineServings: item.caffeine_servings || 0,
   })) || [];
 
