@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -46,9 +45,16 @@ serve(async (req) => {
     const today = new Date().toISOString().split('T')[0];
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-    console.log('Fetching Oura data from', sevenDaysAgo, 'to', today);
+    console.log('Fetching enhanced Oura data from', sevenDaysAgo, 'to', today);
 
-    const [sleepResponse, activityResponse, readinessResponse] = await Promise.all([
+    // Fetch all available endpoints in parallel
+    const [
+      sleepResponse, 
+      activityResponse, 
+      readinessResponse,
+      heartRateResponse,
+      detailedSleepResponse
+    ] = await Promise.all([
       fetch(`https://api.ouraring.com/v2/usercollection/daily_sleep?start_date=${sevenDaysAgo}&end_date=${today}`, {
         headers: { 'Authorization': `Bearer ${ouraToken}` }
       }),
@@ -57,52 +63,137 @@ serve(async (req) => {
       }),
       fetch(`https://api.ouraring.com/v2/usercollection/daily_readiness?start_date=${sevenDaysAgo}&end_date=${today}`, {
         headers: { 'Authorization': `Bearer ${ouraToken}` }
+      }),
+      fetch(`https://api.ouraring.com/v2/usercollection/heartrate?start_datetime=${sevenDaysAgo}T00:00:00&end_datetime=${today}T23:59:59`, {
+        headers: { 'Authorization': `Bearer ${ouraToken}` }
+      }),
+      fetch(`https://api.ouraring.com/v2/usercollection/sleep?start_date=${sevenDaysAgo}&end_date=${today}`, {
+        headers: { 'Authorization': `Bearer ${ouraToken}` }
       })
     ]);
 
-    if (!sleepResponse.ok || !activityResponse.ok || !readinessResponse.ok) {
-      console.error('Oura API error:', sleepResponse.status, activityResponse.status, readinessResponse.status);
+    // Check for API errors
+    const responses = [sleepResponse, activityResponse, readinessResponse, heartRateResponse, detailedSleepResponse];
+    if (responses.some(r => !r.ok)) {
+      console.error('Oura API error:', responses.map(r => r.status));
       return new Response(JSON.stringify({ error: 'Failed to fetch from Oura API' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const sleepData = await sleepResponse.json();
-    const activityData = await activityResponse.json();
-    const readinessData = await readinessResponse.json();
+    const [sleepData, activityData, readinessData, heartRateData, detailedSleepData] = await Promise.all(
+      responses.map(r => r.json())
+    );
 
     console.log('Fetched data counts:', {
       sleep: sleepData.data?.length || 0,
       activity: activityData.data?.length || 0,
-      readiness: readinessData.data?.length || 0
+      readiness: readinessData.data?.length || 0,
+      heartRate: heartRateData.data?.length || 0,
+      detailedSleep: detailedSleepData.data?.length || 0
     });
 
     // Process and merge the data by date
     const mergedData = new Map();
 
-    // Process sleep data
+    // Process daily sleep scores (basic metrics)
     sleepData.data?.forEach((sleep: any) => {
       if (!mergedData.has(sleep.day)) {
         mergedData.set(sleep.day, { date: sleep.day, user_id: user.id });
       }
-      mergedData.get(sleep.day).sleep_score = sleep.score;
+      const dayData = mergedData.get(sleep.day);
+      dayData.sleep_score = sleep.score;
+      // Contributors are available in daily sleep
+      if (sleep.contributors) {
+        dayData.sleep_efficiency = sleep.contributors.efficiency;
+        dayData.sleep_latency = sleep.contributors.latency;
+      }
     });
 
-    // Process activity data
+    // Process detailed sleep data (more comprehensive metrics)
+    detailedSleepData.data?.forEach((sleep: any) => {
+      const date = sleep.day;
+      if (!mergedData.has(date)) {
+        mergedData.set(date, { date: date, user_id: user.id });
+      }
+      const dayData = mergedData.get(date);
+      dayData.total_sleep_duration = sleep.total_sleep_duration;
+      dayData.deep_sleep_duration = sleep.deep_sleep_duration;
+      dayData.rem_sleep_duration = sleep.rem_sleep_duration;
+      dayData.light_sleep_duration = sleep.light_sleep_duration;
+      dayData.awake_time = sleep.awake_time;
+      dayData.sleep_efficiency = sleep.efficiency;
+      dayData.sleep_latency = sleep.latency;
+      dayData.bedtime_start = sleep.bedtime_start;
+      dayData.bedtime_end = sleep.bedtime_end;
+      dayData.average_breath = sleep.average_breath;
+      dayData.average_heart_rate = sleep.average_heart_rate;
+      dayData.average_hrv = sleep.average_hrv;
+      dayData.lowest_heart_rate = sleep.lowest_heart_rate;
+      dayData.restless_periods = sleep.restless_periods;
+      dayData.time_in_bed = sleep.time_in_bed;
+    });
+
+    // Process activity data with detailed metrics
     activityData.data?.forEach((activity: any) => {
       if (!mergedData.has(activity.day)) {
         mergedData.set(activity.day, { date: activity.day, user_id: user.id });
       }
-      mergedData.get(activity.day).activity_score = activity.score;
+      const dayData = mergedData.get(activity.day);
+      dayData.activity_score = activity.score;
+      dayData.total_calories = activity.total_calories;
+      dayData.active_calories = activity.active_calories;
+      dayData.steps = activity.steps;
+      dayData.equivalent_walking_distance = activity.equivalent_walking_distance;
+      dayData.high_activity_time = activity.high_activity_time;
+      dayData.medium_activity_time = activity.medium_activity_time;
+      dayData.low_activity_time = activity.low_activity_time;
+      dayData.non_wear_time = activity.non_wear_time;
+      dayData.resting_heart_rate = activity.resting_heart_rate;
     });
 
-    // Process readiness data
+    // Process readiness data with contributor details
     readinessData.data?.forEach((readiness: any) => {
       if (!mergedData.has(readiness.day)) {
         mergedData.set(readiness.day, { date: readiness.day, user_id: user.id });
       }
-      mergedData.get(readiness.day).readiness_score = readiness.score;
+      const dayData = mergedData.get(readiness.day);
+      dayData.readiness_score = readiness.score;
+      dayData.temperature_deviation = readiness.temperature_deviation;
+      dayData.temperature_trend_deviation = readiness.temperature_trend_deviation;
+      // Process contributors if available
+      if (readiness.contributors) {
+        dayData.activity_balance = readiness.contributors.activity_balance;
+        dayData.body_temperature_contrib = readiness.contributors.body_temperature;
+        dayData.hrv_balance = readiness.contributors.hrv_balance;
+        dayData.previous_day_activity = readiness.contributors.previous_day_activity;
+        dayData.previous_night = readiness.contributors.previous_night;
+        dayData.recovery_index = readiness.contributors.recovery_index;
+        dayData.resting_heart_rate_contrib = readiness.contributors.resting_heart_rate;
+        dayData.sleep_balance = readiness.contributors.sleep_balance;
+      }
+    });
+
+    // Process heart rate data (calculate daily averages if needed)
+    const dailyHeartRates = new Map();
+    heartRateData.data?.forEach((hr: any) => {
+      const date = hr.timestamp.split('T')[0];
+      if (!dailyHeartRates.has(date)) {
+        dailyHeartRates.set(date, []);
+      }
+      dailyHeartRates.get(date).push(hr.bpm);
+    });
+
+    // Calculate daily heart rate averages and add to merged data
+    dailyHeartRates.forEach((bpmArray, date) => {
+      if (mergedData.has(date) && bpmArray.length > 0) {
+        const avgBpm = Math.round(bpmArray.reduce((a, b) => a + b, 0) / bpmArray.length);
+        // Only update if we don't already have resting heart rate from activity data
+        if (!mergedData.get(date).resting_heart_rate) {
+          mergedData.get(date).resting_heart_rate = avgBpm;
+        }
+      }
     });
 
     // Insert/update data in database
@@ -127,7 +218,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       success: true, 
       recordsProcessed: dataToUpsert.length,
-      message: `Synced ${dataToUpsert.length} days of Oura data`
+      message: `Synced ${dataToUpsert.length} days of enhanced Oura data`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
