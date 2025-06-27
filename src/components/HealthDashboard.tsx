@@ -1,7 +1,7 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { 
   Moon, 
   Activity, 
@@ -14,14 +14,16 @@ import {
   Brain,
   Clock,
   Thermometer,
-  Heart
+  Heart,
+  Bug
 } from "lucide-react";
-import { useEnhancedOuraData } from "@/hooks/useOuraData";
-import { useEnhancedLifestyleData } from "@/hooks/useOuraData";
+import { useEnhancedOuraData, useEnhancedLifestyleData } from "@/hooks/useOuraData";
+import { useState } from "react";
 
 export const HealthDashboard = () => {
   const { data: ouraData, isLoading: ouraLoading } = useEnhancedOuraData();
   const { data: lifestyleData, isLoading: lifestyleLoading } = useEnhancedLifestyleData();
+  const [showDebug, setShowDebug] = useState(false);
 
   const todayData = ouraData?.[0];
   const todayLifestyle = lifestyleData?.[0];
@@ -68,276 +70,210 @@ export const HealthDashboard = () => {
     );
   }
 
-  if (!todayData) {
-    return (
-      <div className="text-center py-8">
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-          <CardContent className="p-6">
-            <h3 className="text-lg font-medium text-gray-600 mb-2">No Oura data available</h3>
-            <p className="text-gray-500">Sync your Oura data to see your health metrics here.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-8">
-      {/* Main Health Scores */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Sleep Score */}
-        {todayData.sleep_score && (
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Sleep Score</CardTitle>
-              <Moon className="h-5 w-5 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold mb-2 text-gray-800">{todayData.sleep_score}</div>
-              <Progress value={todayData.sleep_score} className="h-2 mb-2" />
-              <Badge className={`${getScoreBackground(todayData.sleep_score)} ${getScoreColor(todayData.sleep_score)} border-0`}>
-                {todayData.sleep_score >= 85 ? "Excellent" : todayData.sleep_score >= 70 ? "Good" : "Needs Work"}
-              </Badge>
-              {todayData.total_sleep_duration && (
-                <div className="text-xs text-gray-500 mt-2">
-                  Duration: {formatDuration(todayData.total_sleep_duration)}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Activity Score */}
-        {todayData.activity_score && (
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Activity Score</CardTitle>
-              <Activity className="h-5 w-5 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold mb-2 text-gray-800">{todayData.activity_score}</div>
-              <Progress value={todayData.activity_score} className="h-2 mb-2" />
-              <Badge className={`${getScoreBackground(todayData.activity_score)} ${getScoreColor(todayData.activity_score)} border-0`}>
-                {todayData.activity_score >= 85 ? "Excellent" : todayData.activity_score >= 70 ? "Good" : "Low"}
-              </Badge>
-              {todayData.steps && (
-                <div className="text-xs text-gray-500 mt-2">
-                  Steps: {todayData.steps.toLocaleString()}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Readiness Score */}
-        {todayData.readiness_score && (
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Readiness</CardTitle>
-              <Battery className="h-5 w-5 text-purple-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold mb-2 text-gray-800">{todayData.readiness_score}</div>
-              <Progress value={todayData.readiness_score} className="h-2 mb-2" />
-              <Badge className={`${getScoreBackground(todayData.readiness_score)} ${getScoreColor(todayData.readiness_score)} border-0`}>
-                {todayData.readiness_score >= 85 ? "Ready" : todayData.readiness_score >= 70 ? "Good" : "Rest"}
-              </Badge>
-              {todayData.resting_heart_rate && (
-                <div className="text-xs text-gray-500 mt-2">
-                  RHR: {todayData.resting_heart_rate} bpm
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
-      {/* Enhanced Sleep Metrics */}
-      {(todayData.sleep_efficiency || todayData.deep_sleep_duration || todayData.rem_sleep_duration) && (
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-              <Moon className="w-5 h-5 text-blue-600" />
-              Detailed Sleep Metrics
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {todayData.sleep_efficiency && (
-                <div className="text-center p-3 bg-blue-50 rounded-lg">
-                  <div className="text-sm font-medium text-gray-700">Efficiency</div>
-                  <div className="text-xl font-bold text-blue-600">{todayData.sleep_efficiency}%</div>
-                </div>
-              )}
-              {todayData.deep_sleep_duration && (
-                <div className="text-center p-3 bg-indigo-50 rounded-lg">
-                  <div className="text-sm font-medium text-gray-700">Deep Sleep</div>
-                  <div className="text-xl font-bold text-indigo-600">{formatDuration(todayData.deep_sleep_duration)}</div>
-                </div>
-              )}
-              {todayData.rem_sleep_duration && (
-                <div className="text-center p-3 bg-purple-50 rounded-lg">
-                  <div className="text-sm font-medium text-gray-700">REM Sleep</div>
-                  <div className="text-xl font-bold text-purple-600">{formatDuration(todayData.rem_sleep_duration)}</div>
-                </div>
-              )}
-              {todayData.light_sleep_duration && (
-                <div className="text-center p-3 bg-cyan-50 rounded-lg">
-                  <div className="text-sm font-medium text-gray-700">Light Sleep</div>
-                  <div className="text-xl font-bold text-cyan-600">{formatDuration(todayData.light_sleep_duration)}</div>
-                </div>
-              )}
+      {/* Debug Panel */}
+      <Card className="bg-yellow-50 border-yellow-200">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between text-yellow-800">
+            <div className="flex items-center gap-2">
+              <Bug className="w-5 h-5" />
+              Debug Information
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Lifestyle Data */}
-      {todayLifestyle && (
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-gray-800">Yesterday's Lifestyle Data</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {/* Caffeine */}
-              <div className="flex items-center justify-between p-3 bg-amber-50 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Coffee className="w-4 h-4 text-amber-600" />
-                  <span className="text-sm font-medium text-gray-700">Caffeine</span>
-                </div>
-                <span className="text-lg font-bold text-amber-600">
-                  {todayLifestyle.caffeine_servings || 0}
-                </span>
+            <Button 
+              onClick={() => setShowDebug(!showDebug)}
+              variant="outline"
+              size="sm"
+            >
+              {showDebug ? "Hide" : "Show"} Debug
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        {showDebug && (
+          <CardContent className="bg-white rounded-lg">
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-semibold text-gray-800 mb-2">Raw Oura Data (First 3 entries):</h4>
+                <pre className="text-xs bg-gray-100 p-3 rounded overflow-x-auto">
+                  {JSON.stringify(ouraData?.slice(0, 3), null, 2)}
+                </pre>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold text-gray-800 mb-2">Raw Lifestyle Data (First 3 entries):</h4>
+                <pre className="text-xs bg-gray-100 p-3 rounded overflow-x-auto">
+                  {JSON.stringify(lifestyleData?.slice(0, 3), null, 2)}
+                </pre>
               </div>
 
-              {/* Alcohol */}
-              <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Wine className="w-4 h-4 text-red-600" />
-                  <span className="text-sm font-medium text-gray-700">Alcohol</span>
+              <div>
+                <h4 className="font-semibold text-gray-800 mb-2">Today's Data Processing:</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <strong>Today's Oura (todayData):</strong>
+                    <pre className="text-xs bg-gray-100 p-2 rounded mt-1">
+                      {JSON.stringify(todayData, null, 2)}
+                    </pre>
+                  </div>
+                  <div>
+                    <strong>Today's Lifestyle (todayLifestyle):</strong>
+                    <pre className="text-xs bg-gray-100 p-2 rounded mt-1">
+                      {JSON.stringify(todayLifestyle, null, 2)}
+                    </pre>
+                  </div>
                 </div>
-                <span className="text-lg font-bold text-red-600">
-                  {todayLifestyle.alcohol_servings || 0}
-                </span>
               </div>
 
-              {/* Last Alcoholic Drink */}
-              {todayLifestyle.last_alcoholic_drink && (
-                <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-red-600" />
-                    <span className="text-sm font-medium text-gray-700">Last Drink</span>
-                  </div>
-                  <span className="text-sm font-bold text-red-600">
-                    {formatTime(todayLifestyle.last_alcoholic_drink)}
-                  </span>
+              <div>
+                <h4 className="font-semibold text-gray-800 mb-2">Data Array Info:</h4>
+                <div className="text-sm space-y-1">
+                  <div>Oura Data Length: {ouraData?.length || 0}</div>
+                  <div>Lifestyle Data Length: {lifestyleData?.length || 0}</div>
+                  <div>Oura Data Order: {ouraData?.slice(0, 5).map(d => `${d.date}: Sleep ${d.sleep_score}`).join(', ')}</div>
+                  <div>Lifestyle Data Order: {lifestyleData?.slice(0, 5).map(d => `${d.date}: Caffeine ${d.caffeine_servings}`).join(', ')}</div>
                 </div>
-              )}
-
-              {/* Screentime End */}
-              {todayLifestyle.screentime_end && (
-                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Smartphone className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm font-medium text-gray-700">Screen End</span>
-                  </div>
-                  <span className="text-sm font-bold text-blue-600">
-                    {formatTime(todayLifestyle.screentime_end)}
-                  </span>
-                </div>
-              )}
-
-              {/* Last Food */}
-              {todayLifestyle.last_food && (
-                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Utensils className="w-4 h-4 text-green-600" />
-                    <span className="text-sm font-medium text-gray-700">Last Food</span>
-                  </div>
-                  <span className="text-sm font-bold text-green-600">
-                    {formatTime(todayLifestyle.last_food)}
-                  </span>
-                </div>
-              )}
-
-              {/* Stress Level */}
-              {todayLifestyle.stress_level && (
-                <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Brain className="w-4 h-4 text-purple-600" />
-                    <span className="text-sm font-medium text-gray-700">Stress</span>
-                  </div>
-                  <span className="text-lg font-bold text-purple-600">
-                    {todayLifestyle.stress_level}/10
-                  </span>
-                </div>
-              )}
-
-              {/* Sleep Aids */}
-              {todayLifestyle.sleep_aids && todayLifestyle.sleep_aids.length > 0 && (
-                <div className="col-span-2 md:col-span-1 p-3 bg-indigo-50 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Pill className="w-4 h-4 text-indigo-600" />
-                    <span className="text-sm font-medium text-gray-700">Sleep Aids</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {todayLifestyle.sleep_aids.map((aid, index) => (
-                      <Badge key={index} className="bg-indigo-100 text-indigo-800 text-xs">
-                        {aid}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
           </CardContent>
-        </Card>
+        )}
+      </Card>
+
+      {/* Data Availability Check */}
+      {!todayData && (
+        <div className="text-center py-8">
+          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-medium text-gray-600 mb-2">No Oura data available</h3>
+              <p className="text-gray-500">Sync your Oura data to see your health metrics here.</p>
+              <div className="mt-4 text-sm text-gray-400">
+                <div>Available Oura entries: {ouraData?.length || 0}</div>
+                <div>Available Lifestyle entries: {lifestyleData?.length || 0}</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
-      {/* Enhanced Biometric Data */}
-      {(todayData.average_heart_rate || todayData.average_hrv || todayData.temperature_deviation) && (
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-              <Heart className="w-5 h-5 text-red-600" />
-              Biometric Data
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {todayData.average_heart_rate && (
-                <div className="text-center p-3 bg-red-50 rounded-lg">
-                  <div className="text-sm font-medium text-gray-700">Avg HR</div>
-                  <div className="text-xl font-bold text-red-600">{Math.round(todayData.average_heart_rate)} bpm</div>
-                </div>
-              )}
-              {todayData.average_hrv && (
-                <div className="text-center p-3 bg-green-50 rounded-lg">
-                  <div className="text-sm font-medium text-gray-700">HRV</div>
-                  <div className="text-xl font-bold text-green-600">{todayData.average_hrv} ms</div>
-                </div>
-              )}
-              {todayData.temperature_deviation && (
-                <div className="text-center p-3 bg-orange-50 rounded-lg">
-                  <div className="text-sm font-medium text-gray-700 flex items-center justify-center gap-1">
-                    <Thermometer className="w-3 h-3" />
-                    Temp Deviation
+      {/* Main Health Scores - Only show if we have data */}
+      {todayData && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Sleep Score */}
+            {todayData.sleep_score && (
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-600">
+                    Sleep Score - {todayData.date}
+                  </CardTitle>
+                  <Moon className="h-5 w-5 text-blue-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold mb-2 text-gray-800">{todayData.sleep_score}</div>
+                  <Progress value={todayData.sleep_score} className="h-2 mb-2" />
+                  <Badge className={`${getScoreBackground(todayData.sleep_score)} ${getScoreColor(todayData.sleep_score)} border-0`}>
+                    {todayData.sleep_score >= 85 ? "Excellent" : todayData.sleep_score >= 70 ? "Good" : "Needs Work"}
+                  </Badge>
+                  {todayData.total_sleep_duration && (
+                    <div className="text-xs text-gray-500 mt-2">
+                      Duration: {formatDuration(todayData.total_sleep_duration)}
+                    </div>
+                  )}
+                  <div className="text-xs text-gray-400 mt-1">
+                    Raw: {todayData.sleep_score} | Date: {todayData.date} | ID: {todayData.id}
                   </div>
-                  <div className="text-xl font-bold text-orange-600">
-                    {todayData.temperature_deviation > 0 ? '+' : ''}{todayData.temperature_deviation}°C
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Activity Score */}
+            {todayData.activity_score && (
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-600">
+                    Activity Score - {todayData.date}
+                  </CardTitle>
+                  <Activity className="h-5 w-5 text-green-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold mb-2 text-gray-800">{todayData.activity_score}</div>
+                  <Progress value={todayData.activity_score} className="h-2 mb-2" />
+                  <Badge className={`${getScoreBackground(todayData.activity_score)} ${getScoreColor(todayData.activity_score)} border-0`}>
+                    {todayData.activity_score >= 85 ? "Excellent" : todayData.activity_score >= 70 ? "Good" : "Low"}
+                  </Badge>
+                  {todayData.steps && (
+                    <div className="text-xs text-gray-500 mt-2">
+                      Steps: {todayData.steps.toLocaleString()}
+                    </div>
+                  )}
+                  <div className="text-xs text-gray-400 mt-1">
+                    Raw: {todayData.activity_score} | Date: {todayData.date} | ID: {todayData.id}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Readiness Score */}
+            {todayData.readiness_score && (
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-600">
+                    Readiness - {todayData.date}
+                  </CardTitle>
+                  <Battery className="h-5 w-5 text-purple-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold mb-2 text-gray-800">{todayData.readiness_score}</div>
+                  <Progress value={todayData.readiness_score} className="h-2 mb-2" />
+                  <Badge className={`${getScoreBackground(todayData.readiness_score)} ${getScoreColor(todayData.readiness_score)} border-0`}>
+                    {todayData.readiness_score >= 85 ? "Ready" : todayData.readiness_score >= 70 ? "Good" : "Rest"}
+                  </Badge>
+                  {todayData.resting_heart_rate && (
+                    <div className="text-xs text-gray-500 mt-2">
+                      RHR: {todayData.resting_heart_rate} bpm
+                    </div>
+                  )}
+                  <div className="text-xs text-gray-400 mt-1">
+                    Raw: {todayData.readiness_score} | Date: {todayData.date} | ID: {todayData.id}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Today's Lifestyle Data */}
+          {todayLifestyle && (
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-gray-800">
+                  Lifestyle Data - {todayLifestyle.date}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {/* Caffeine */}
+                  <div className="flex items-center justify-between p-3 bg-amber-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Coffee className="w-4 h-4 text-amber-600" />
+                      <span className="text-sm font-medium text-gray-700">Caffeine</span>
+                    </div>
+                    <span className="text-lg font-bold text-amber-600">
+                      {todayLifestyle.caffeine_servings || 0}
+                    </span>
+                  </div>
+
+                  {/* Show all lifestyle fields for debugging */}
+                  <div className="col-span-full">
+                    <div className="text-xs text-gray-400 bg-gray-50 p-3 rounded">
+                      <strong>Lifestyle Debug:</strong> ID: {todayLifestyle.id} | Date: {todayLifestyle.date} | 
+                      Caffeine: {todayLifestyle.caffeine_servings} | Alcohol: {todayLifestyle.alcohol_servings} | 
+                      Stress: {todayLifestyle.stress_level}
+                    </div>
                   </div>
                 </div>
-              )}
-              {todayData.total_calories && (
-                <div className="text-center p-3 bg-yellow-50 rounded-lg">
-                  <div className="text-sm font-medium text-gray-700">Calories</div>
-                  <div className="text-xl font-bold text-yellow-600">{todayData.total_calories}</div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
     </div>
   );
